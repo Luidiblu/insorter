@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Insorter</title>
+<link rel="icon" href="/logo.svg" type="image/svg+xml">
+<style>
+:root { --bg:#07080c; --panel:#14161d; --panel2:#1b1e27; --fg:#eef0f5; --muted:#8c90a0; --border:#272b36; --line:rgba(255,255,255,.07); --accent:#7c93ff; --ok:#4fc08d; --warn:#e3a84f; --err:#e26060; }
+* { box-sizing:border-box }
+html, body { height:100% }
+body { margin:0; font:14px/1.45 -apple-system, "SF Pro Text", system-ui, sans-serif; color:var(--fg); display:flex; flex-direction:column; overflow:hidden; user-select:none; -webkit-user-select:none;
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(900px 520px at 12% -10%, rgba(124,147,255,.16), transparent 62%),
+    radial-gradient(760px 520px at 100% 105%, rgba(43,179,163,.11), transparent 60%),
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:auto, auto, 28px 28px, 28px 28px, 160px 160px }
+input, textarea, select { user-select:text; -webkit-user-select:text }
+img { -webkit-user-drag:none; user-drag:none; pointer-events:none }
+.grid img { pointer-events:auto }
+::-webkit-scrollbar { width:10px; height:10px } ::-webkit-scrollbar-thumb { background:#2a2d38; border-radius:6px; border:2px solid #0b0c10 } ::-webkit-scrollbar-track { background:transparent }
+button { font:inherit; background:linear-gradient(180deg, #222631, #1a1d26); color:var(--fg); border:1px solid var(--border); border-top-color:rgba(255,255,255,.12); border-radius:10px; padding:8px 12px; cursor:pointer; box-shadow:0 1px 0 rgba(0,0,0,.4) }
+button:hover { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent) }
+button.sec { color:var(--muted) }
+kbd { color:var(--muted); font:11px ui-monospace, SFMono-Regular, monospace; border:1px solid var(--border); border-radius:4px; padding:0 5px; margin-left:6px; background:#0f1116 }
+select, input[type=text] { font:inherit; background:#0f1116; color:var(--fg); border:1px solid var(--border); border-radius:9px; padding:6px 10px; font-size:13px }
+input[type=text]:focus, select:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent) }
+
+header { display:flex; flex-direction:column; gap:8px; padding:10px 14px; border-bottom:1px solid var(--line); background:rgba(10,11,15,.78); backdrop-filter:blur(12px) saturate(1.3); -webkit-backdrop-filter:blur(12px) saturate(1.3); z-index:5 }
+.row { display:flex; gap:10px; align-items:center; flex-wrap:wrap }
+.brand { font-weight:700; font-size:15px; letter-spacing:.2px; background:linear-gradient(90deg, #fff, #b9c4ff); -webkit-background-clip:text; background-clip:text; color:transparent }
+.stat { display:flex; align-items:center; gap:10px; flex:1; min-width:180px }
+.bar { flex:1; height:6px; background:#15171e; border-radius:3px; overflow:hidden; box-shadow:inset 0 1px 2px rgba(0,0,0,.6) }
+.bar i { display:block; height:100%; width:0; background:linear-gradient(90deg, var(--accent), #a8b6ff); box-shadow:0 0 12px color-mix(in srgb, var(--accent) 60%, transparent); transition:width .25s }
+.stat span { color:var(--muted); font-size:12px; white-space:nowrap; font-variant-numeric:tabular-nums }
+.chk { color:var(--muted); font-size:13px; white-space:nowrap; display:flex; align-items:center; gap:5px }
+#search { min-width:200px; flex:1 }
+.banner { background:#3a2020; color:#f3b4b4; padding:8px 14px; display:none; white-space:pre-wrap; font-size:13px }
+
+#main { flex:1; display:grid; grid-template-columns:minmax(0, 1fr) 236px; min-height:0 }
+.stage { position:relative; padding:20px 16px 28px; overflow:auto; min-height:0 }
+.stack { position:relative; max-width:720px; margin:0 auto }
+.back { position:absolute; inset:0; transform:translateY(16px) scale(.955); transform-origin:top center; background:linear-gradient(180deg, #171a22, #121419); border:1px solid var(--line); border-radius:18px; padding:20px; opacity:.8; z-index:0; overflow:hidden; pointer-events:none }
+.back .head { filter:saturate(.5) }
+.card { position:relative; z-index:1; background:linear-gradient(180deg, #1b1e27 0%, #15171e 100%); border:1px solid rgba(255,255,255,.08); border-top-color:rgba(255,255,255,.16); border-radius:18px; padding:22px; display:flex; flex-direction:column; gap:14px; cursor:grab; box-shadow:0 24px 70px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.04); will-change:transform }
+.card.lifted { overflow:hidden }
+.card.dragging { cursor:grabbing; box-shadow:0 40px 90px rgba(0,0,0,.7) }
+#ph { display:none }
+.stamp { position:absolute; top:22px; right:22px; z-index:3; font-size:30px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--c, var(--accent)); border:4px solid var(--c, var(--accent)); border-radius:12px; padding:2px 12px; transform:rotate(12deg); opacity:0; pointer-events:none; transition:opacity .1s; text-shadow:0 2px 10px rgba(0,0,0,.5); background:rgba(0,0,0,.35); backdrop-filter:blur(3px) }
+.stamp.show { opacity:1 }
+.next { color:var(--muted); font-size:12px; width:fit-content; margin:30px auto 0; padding:5px 14px; border:1px solid var(--line); border-radius:999px; background:rgba(255,255,255,.03) }
+.next:empty { display:none }
+.empty { color:var(--muted); display:flex; align-items:center; justify-content:center; height:200px; font-size:16px }
+
+.head { display:flex; gap:18px; align-items:flex-start }
+.avatar { width:116px; height:116px; border-radius:50%; object-fit:cover; object-position:center; background:#2a2a33; flex:none; margin:5px; box-shadow:0 0 0 2px var(--panel), 0 0 0 5px var(--ring, var(--border)), 0 8px 24px rgba(0,0,0,.5) }
+.back .avatar { width:72px; height:72px }
+.who { min-width:0; flex:1; display:flex; flex-direction:column; gap:6px }
+.name { font-size:22px; font-weight:700; line-height:1.2; letter-spacing:-.2px; overflow-wrap:anywhere }
+.user { color:var(--muted); font-size:14px; overflow-wrap:anywhere }
+.rel { display:flex; gap:6px; flex-wrap:wrap }
+.rc { font-size:12px; padding:3px 9px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background:rgba(0,0,0,.25) }
+.rc.on { border-color:color-mix(in srgb, var(--ok) 60%, transparent); color:var(--ok); background:color-mix(in srgb, var(--ok) 10%, transparent) }
+.rc.off { border-color:#3a2d2d; color:#b86b6b }
+.rc.warn { border-color:color-mix(in srgb, var(--warn) 60%, transparent); color:var(--warn); background:color-mix(in srgb, var(--warn) 10%, transparent) }
+.flags { display:flex; gap:6px; flex-wrap:wrap }
+.tag { padding:3px 9px; border-radius:999px; border:1px solid var(--border); font-size:12px; background:rgba(255,255,255,.04); color:var(--fg) }
+.tag.good { border-color:color-mix(in srgb, var(--ok) 55%, transparent); color:var(--ok); background:color-mix(in srgb, var(--ok) 9%, transparent) }
+.tag.warn { border-color:color-mix(in srgb, var(--warn) 55%, transparent); color:var(--warn); background:color-mix(in srgb, var(--warn) 9%, transparent) }
+.tag.bad { border-color:color-mix(in srgb, var(--err) 55%, transparent); color:var(--err); background:color-mix(in srgb, var(--err) 9%, transparent) }
+.tag.acc { border-color:color-mix(in srgb, var(--accent) 55%, transparent); color:var(--accent); background:color-mix(in srgb, var(--accent) 9%, transparent) }
+.tag.sug { border-color:var(--c); color:#fff; background:color-mix(in srgb, var(--c) 45%, var(--panel2)); font-weight:600; cursor:pointer; box-shadow:0 0 14px color-mix(in srgb, var(--c) 35%, transparent) }
+.tag.sug kbd { color:#fff; border-color:rgba(255,255,255,.4); background:transparent }
+.nums { display:flex; gap:18px; flex-wrap:wrap; color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums }
+.nums b { color:var(--fg); font-weight:600; font-size:15px }
+.nums .old b { color:var(--warn) }
+.bio { white-space:pre-wrap; font-size:15px; overflow-wrap:anywhere; line-height:1.5 }
+.link { color:var(--accent); font-size:13px; overflow-wrap:anywhere }
+.net { display:flex; gap:6px; flex-wrap:wrap; align-items:center; color:var(--muted); font-size:13px }
+.chip { font-size:12px; padding:2px 8px; border-radius:999px; background:rgba(255,255,255,.04); border:1px solid var(--border); color:var(--fg); cursor:pointer }
+.chip:hover { border-color:var(--accent) }
+.grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:5px; width:100%; max-width:480px; margin:0 auto }
+.grid > div { position:relative; aspect-ratio:3/4; cursor:pointer; border-radius:10px; overflow:hidden; background:#1d2029; box-shadow:inset 0 0 0 1px rgba(255,255,255,.05) }
+.grid img { width:100%; height:100%; object-fit:cover; display:block; transition:transform .15s }
+.grid > div:hover img { transform:scale(1.04) }
+.grid .b { position:absolute; top:5px; right:5px; font-size:11px; background:rgba(0,0,0,.65); color:#fff; border-radius:5px; padding:1px 6px; backdrop-filter:blur(2px) }
+.grid .cap { position:absolute; left:0; right:0; bottom:0; font-size:11px; padding:14px 6px 5px; background:linear-gradient(transparent, rgba(0,0,0,.78)); color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; opacity:0; transition:opacity .15s }
+.grid > div:hover .cap { opacity:1 }
+.sk { background:linear-gradient(90deg, #1d2029 25%, #262a35 50%, #1d2029 75%); background-size:200% 100%; animation:sh 1.2s infinite }
+@keyframes sh { to { background-position:-200% 0 } }
+.decided { font-size:13px; color:var(--muted) }
+.decided b { padding:2px 8px; border-radius:999px; color:#fff; background:var(--c) }
+.actions { display:flex; flex-wrap:wrap; gap:8px; padding-top:6px; border-top:1px solid var(--line) }
+.err { color:var(--err); font-size:13px }
+
+.buckets { display:flex; flex-direction:column; gap:8px; padding:16px 14px; border-left:1px solid var(--line); background:rgba(12,13,18,.72); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); overflow:auto }
+.bucket { --c:#888; border:1px solid color-mix(in srgb, var(--c) 40%, transparent); background:linear-gradient(135deg, color-mix(in srgb, var(--c) 18%, #1a1d26), color-mix(in srgb, var(--c) 6%, #13151b)); box-shadow:inset 0 1px 0 rgba(255,255,255,.05); border-radius:13px; padding:10px 12px; cursor:pointer; display:flex; align-items:center; gap:10px; user-select:none; transition:background .12s, transform .12s, box-shadow .12s }
+.bucket:hover { background:linear-gradient(135deg, color-mix(in srgb, var(--c) 30%, #1a1d26), color-mix(in srgb, var(--c) 12%, #13151b)); box-shadow:0 8px 24px color-mix(in srgb, var(--c) 22%, transparent) }
+.bucket.over { background:linear-gradient(135deg, color-mix(in srgb, var(--c) 55%, #1a1d26), color-mix(in srgb, var(--c) 25%, #13151b)); transform:scale(1.06); border-color:var(--c); box-shadow:0 0 0 3px color-mix(in srgb, var(--c) 35%, transparent), 0 12px 30px color-mix(in srgb, var(--c) 35%, transparent) }
+.bucket.flash { background:color-mix(in srgb, var(--c) 60%, #1a1d26) }
+.bucket .dot { width:10px; height:10px; border-radius:50%; background:var(--c); flex:none; box-shadow:0 0 10px var(--c) }
+.bucket .lbl { flex:1; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.bucket .n { color:var(--muted); font-size:12px; min-width:18px; text-align:right; font-variant-numeric:tabular-nums }
+.bucket.special { opacity:.8 }
+.editg { margin-top:auto; padding-top:10px }
+.help { color:var(--muted); font-size:11px; line-height:1.7; padding-top:10px }
+
+#toast { position:fixed; left:50%; bottom:18px; transform:translateX(-50%) translateY(20px); background:rgba(29,32,41,.92); backdrop-filter:blur(8px); border:1px solid var(--border); border-radius:12px; padding:10px 14px; font-size:13px; opacity:0; pointer-events:none; transition:all .2s; z-index:60; display:flex; gap:12px; align-items:center; box-shadow:0 10px 30px rgba(0,0,0,.5) }
+#toast.show { opacity:1; transform:translateX(-50%); pointer-events:auto }
+#toast b { padding:2px 8px; border-radius:999px; color:#fff; background:var(--c, #555) }
+#toast button { padding:4px 10px; font-size:12px }
+
+.lists, .groups { display:none; flex:1; min-height:0; overflow:auto; padding:16px }
+.groups { max-width:720px }
+.groups h3 { margin:0 0 8px; font-size:14px; color:var(--muted); font-weight:500 }
+.groups .hint { color:var(--muted); font-size:13px; margin-bottom:12px }
+.grow { display:grid; grid-template-columns:auto auto 1fr auto auto auto; gap:6px; align-items:center; margin-bottom:10px; padding:8px 10px; border:1px solid var(--border); border-radius:12px; background:var(--panel2) }
+.grow .dot { width:10px; height:10px; border-radius:50%; flex:none }
+.grow input { min-width:0 }
+.grow input.kw { grid-column:1 / -1; font-size:12px; color:var(--muted) }
+.grow button { padding:5px 9px }
+.groups .add { display:flex; gap:6px; margin:6px 0 14px }
+.groups .add input { flex:1 }
+.lists nav { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; align-items:center }
+.lists nav button { --c:#888; display:flex; align-items:center; gap:7px }
+.lists nav button.on { border-color:var(--c); background:color-mix(in srgb, var(--c) 18%, var(--panel2)) }
+.lists nav .dot { width:9px; height:9px; border-radius:50%; background:var(--c) }
+.lists nav .n { color:var(--muted); font-size:12px }
+table { width:100%; border-collapse:collapse } td, th { border-bottom:1px solid var(--line); padding:7px 8px; text-align:left; vertical-align:middle } th { color:var(--muted); font-weight:500; font-size:12px }
+td img { width:30px; height:30px; border-radius:50%; vertical-align:middle; margin-right:9px; object-fit:cover; background:#2a2a33 }
+td .u { color:var(--muted); font-size:12px; margin-left:6px }
+td select { padding:4px 7px }
+td:last-child { white-space:nowrap }
+#paths { white-space:pre-wrap; color:var(--muted); font:12px ui-monospace, monospace; margin-top:12px; user-select:text; -webkit-user-select:text }
+.changes { display:none; flex:1; min-height:0; overflow:auto; padding:16px }
+.changes h3 { margin:18px 0 8px; font-size:14px; color:var(--muted); font-weight:500 }
+.changes h3:first-child { margin-top:0 }
+.changes .n { color:var(--fg); font-weight:600 }
+.note { display:flex; gap:8px; align-items:center; font-size:13px; color:var(--muted) }
+.note b { color:var(--fg); font-weight:500 }
+.note input { flex:1 }
+.badge { display:inline-block; min-width:18px; padding:0 6px; border-radius:999px; background:var(--err); color:#fff; font-size:11px; font-weight:600; margin-left:6px; text-align:center }
+.selbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:0 0 10px; color:var(--muted); font-size:13px }
+.auto-panel { margin:18px 0; padding:12px 14px; border:1px solid var(--border); border-radius:12px; background:var(--panel2) }
+.auto-panel .r { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:8px }
+.auto-panel .prev { margin-top:10px; color:var(--muted); font-size:13px }
+.auto-panel .prev b { color:var(--fg) }
+
+@media (max-width: 900px) {
+  #main { grid-template-columns:1fr; grid-template-rows:minmax(0, 1fr) auto }
+  .buckets { border-left:none; border-top:1px solid var(--line); display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:10px; overflow:visible }
+  .bucket { padding:8px 10px }
+  .help { display:none }
+  .editg { grid-column:1 / -1; margin:0; padding:0; text-align:center }
+  .editg button { padding:4px 10px; font-size:12px }
+  .avatar { width:92px; height:92px }
+  .name { font-size:19px }
+  .stamp { font-size:22px; top:14px; right:14px }
+  #order { display:none }
+  .stage { padding:12px 12px 20px }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="row">
+    <span class="brand"><img src="/logo.svg" alt="" width="22" height="22" style="vertical-align:-5px;margin-right:7px">Insorter</span>
+    <div class="stat"><div class="bar"><i id="bar"></i></div><span id="prog"></span></div>
+    <button id="toggleChanges">Changes</button>
+    <button id="toggleGroups">Groups</button>
+    <button id="toggleLists">Lists</button>
+  </div>
+  <div class="row">
+    <select id="rel"></select>
+    <select id="order">
+      <option value="default">order: mutual → you follow → pending → follow you</option>
+      <option value="sug">order: suggestions first</option>
+      <option value="alpha">order: alphabetical</option>
+    </select>
+    <label class="chk"><input type="checkbox" id="showDecided"> include filed</label>
+    <select id="grp" style="display:none"></select>
+    <input type="text" id="search" placeholder="search @username or name  (/)">
+  </div>
+</header>
+<div class="banner" id="banner"></div>
+<div id="main">
+  <div class="stage">
+    <div class="stack">
+      <div class="back" id="back"></div>
+      <div id="ph"></div>
+      <section class="card" id="card"></section>
+    </div>
+    <div class="next" id="next"></div>
+  </div>
+  <aside class="buckets" id="buckets"></aside>
+</div>
+<section class="lists" id="lists"></section>
+<section class="groups" id="groups"></section>
+<section class="changes" id="changes"></section>
+<div id="toast"></div>
+<script type="module">
+import { suggest as suggestIn, relationOf as rel, normalize } from '/lib.js';
+const $ = s => document.querySelector(s);
+const S = { accounts: [], decisions: {}, notes: {}, buckets: [], special: [], keywords: {}, changes: null, profiles: {}, queue: [], i: 0, history: [], times: [], skipped: new Set(JSON.parse(localStorage.getItem('skipped') || '[]')), view: 'triage', listBucket: null, listQuery: '', listAuto: false, selected: new Set(), suggestion: null };
+const PALETTE = ['#5b8def', '#2bb3a3', '#e05fa0', '#52c569', '#f0a04b', '#ef6b6b', '#a77bf3', '#8ea0b5', '#d7c75a'];
+const color = b => { const i = S.buckets.indexOf(b); return i >= 0 ? PALETTE[i % PALETTE.length] : '#6f7280'; };
+const REL = { mutual: 'Mutual', you_follow: 'You follow', follows_you: 'Follow you', pending: 'Requested to follow you', none: 'No relation' };
+const RANK = { mutual: 0, you_follow: 1, pending: 2, follows_you: 3, none: 4 };
+const RING = { mutual: 'var(--ok)', you_follow: 'var(--warn)', follows_you: 'var(--accent)', pending: 'var(--warn)', none: 'var(--border)' };
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const norm = s => normalize(s).trim();
+const fmtN = n => n == null ? '–' : Number(n).toLocaleString('en-US');
+const days = ts => (Date.now() / 1000 - ts) / 86400;
+const ago = ts => { const d = Math.round(days(ts)); return d < 1 ? 'today' : d < 30 ? `${d} d ago` : d < 365 ? `${Math.round(d / 30)} months ago` : `${(d / 365).toFixed(1)} years ago`; };
+const fmtDate = ts => new Date(ts * 1000).toLocaleDateString('en-US');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const banner = msg => { const b = $('#banner'); b.style.display = msg ? 'block' : 'none'; b.textContent = msg || ''; };
+const DEMO = new URLSearchParams(location.search).get('demo') === '1';
+async function api(path, body) {
+  if (DEMO) return demoApi(path, body);
+  const r = await fetch(path, body ? { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) } : undefined);
+  const j = await r.json(); if (j && j.error) throw new Error(j.error); return j;
+}
+const openIg = body => api('/api/open', body).catch(e => banner(e.message));
+const groupsAll = () => [...S.buckets, ...S.special];
+const suggestFor = (a, p) => suggestIn(S.keywords, groupsAll(), [a.username, a.full_name, p?.full_name, p?.biography, p?.category, p?.external_url, p?.city]);
+
+// Demo mode (?demo=1): a fully synthetic dataset served from memory, so screenshots never contain a real person or real data.
+function demoApi(path, body) {
+  const D = demoApi.state ??= (() => {
+    const svg = (text, c1, c2) => 'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='${c1}'/><stop offset='1' stop-color='${c2}'/></linearGradient></defs><rect width='120' height='120' fill='url(#g)'/><text x='60' y='74' font-family='sans-serif' font-size='40' font-weight='700' fill='white' text-anchor='middle'>${text}</text></svg>`);
+    const now = Math.floor(Date.now() / 1000);
+    const mk = (i) => { const k = i % 4; return { pk: 'demo' + i, username: 'sample_user_' + String(i).padStart(2, '0'), full_name: 'Sample Account ' + i, is_private: i % 5 === 0, is_verified: i % 9 === 0, pic: svg('S' + (i % 10), PALETTE[i % 9], PALETTE[(i + 3) % 9]), you_follow: k === 0 || k === 1, follows_you: k === 0 || k === 2, pending_request: k === 3, last_post: now - (i * 7 + 2) * 86400, no_posts: false, extra: {} }; };
+    // The first card is a public company account (Lockheed Martin): public identity only; relationship flags, numbers and posts are placeholders, nothing is scraped.
+    const accounts = [{ pk: 'demo0', username: 'lockheedmartin', full_name: 'Lockheed Martin', is_private: false, is_verified: true, pic: svg('LM', '#1f2a5a', '#7c93ff'), you_follow: true, follows_you: true, pending_request: false, last_post: now - 2 * 86400, no_posts: false, extra: {} }, ...Array.from({ length: 119 }, (_, i) => mk(i + 1))];
+    const profile = a => ({ pk: a.pk, username: a.username, full_name: a.full_name, biography: a.pk === 'demo0' ? 'Demo card: the public account of Lockheed Martin, a US aerospace and defense company. Relationship flags, numbers and posts on this card are placeholders.' : 'Synthetic profile for demo purposes.', category: a.pk === 'demo0' ? 'Aerospace company' : '', follower_count: a.pk === 'demo0' ? 1000000 : 1240 + a.pk.length * 37, following_count: a.pk === 'demo0' ? 120 : 231, media_count: a.pk === 'demo0' ? 1500 : 342, mutual_followers_count: 14, context: ['sample_user_07', 'sample_user_19', 'sample_user_23'], pic: a.pic, is_private: a.is_private, is_verified: a.is_verified, is_business: a.pk === 'demo0', is_professional: false, city: a.pk === 'demo0' ? 'Bethesda, Maryland' : '', external_url: a.pk === 'demo0' ? 'https://www.lockheedmartin.com' : '', pronouns: [], latest_reel_media: 1, is_memorialized: false, is_bestie: false, is_feed_favorite: false, is_restricted: false, muting: false, following: a.you_follow, followed_by: a.follows_you, incoming_request: a.pending_request, outgoing_request: false });
+    const posts = a => ({ last: a.last_post, n: 9, items: Array.from({ length: 9 }, (_, k) => ({ code: 'DEMO' + a.pk + k, taken_at: a.last_post - k * 9 * 86400, media_type: k === 4 ? 2 : 1, thumb: svg('', PALETTE[(k + 2) % 9], PALETTE[(k + 6) % 9]), caption: 'Demo post ' + (k + 1), likes: 120 + k * 31, comments: 4 + k, carousel: k === 1 ? 3 : 0, pinned: k === 0 })) });
+    const snap = a => ({ pk: a.pk, username: a.username, full_name: a.full_name, pic: a.pic, you_follow: a.you_follow, follows_you: a.follows_you, pending_request: a.pending_request });
+    return { accounts, profile, posts, decisions: {}, notes: {}, buckets: ['Group 1', 'Group 2', 'Group 3', 'Group 4', 'Group 5', 'Group 6'], special: ['Trash'], keywords: { 'Group 2': ['aerospace', 'engineer'] },
+      changes: { at: new Date().toISOString(), previous_at: new Date(Date.now() - 7 * 86400e3).toISOString(), unfollowed_you: accounts.slice(5, 8).map(snap), new_followers: accounts.slice(9, 14).map(snap), you_unfollowed: [], you_followed: accounts.slice(15, 16).map(snap), new_requests: accounts.slice(19, 21).map(snap) } };
+  })();
+  const q = new URLSearchParams(path.split('?')[1] || ''); const p = path.split('?')[0];
+  const find = pk => D.accounts.find(a => a.pk === pk);
+  const ch = D.changes;
+  switch (p) {
+    case '/api/state': return { needsCollect: false, buckets: D.buckets, special: D.special, keywords: D.keywords, accounts: D.accounts, decisions: D.decisions, notes: D.notes, changes: { at: ch.at, previous_at: ch.previous_at, unfollowed_you: ch.unfollowed_you.length, new_followers: ch.new_followers.length, you_unfollowed: 0, you_followed: ch.you_followed.length, new_requests: ch.new_requests.length } };
+    case '/api/profile': { const a = find(q.get('pk')); return { pk: a.pk, profile: D.profile(a), posts: null }; }
+    case '/api/posts': { const a = find(q.get('pk')); return { pk: a.pk, posts: D.posts(a) }; }
+    case '/api/changes': return ch;
+    case '/api/decide': D.decisions[body.pk] = { bucket: body.bucket, at: new Date().toISOString(), username: find(body.pk).username }; return { ok: true };
+    case '/api/undecide': for (const pk of body.pk ? [body.pk] : body.pks || []) delete D.decisions[pk]; return { ok: true };
+    case '/api/bulk': for (const pk of body.pks) D.decisions[pk] = { bucket: body.bucket, at: new Date().toISOString(), username: find(pk).username }; return { ok: true, moved: body.pks.length };
+    case '/api/note': { const n = String(body.note || '').trim(); if (n) D.notes[body.pk] = n; else delete D.notes[body.pk]; return { ok: true, note: n }; }
+    case '/api/autosort': { const counts = {}; let total = 0; for (const a of D.accounts) { if (D.decisions[a.pk]) continue; const s = suggestIn(D.keywords, [...D.buckets, ...D.special], [a.username, a.full_name]); if (!s || s.hits.length < (body.minHits || 1)) continue; counts[s.group] = (counts[s.group] || 0) + 1; total++; if (body.apply) D.decisions[a.pk] = { bucket: s.group, at: new Date().toISOString(), username: a.username, auto: true, hits: s.hits }; } return { total, counts, applied: !!body.apply }; }
+    case '/api/groups': D.buckets = body.buckets; D.special = body.special; D.keywords = body.keywords || {}; return { ok: true, buckets: D.buckets, special: D.special, keywords: D.keywords };
+    case '/api/export': return { ok: true, files: ['(demo mode: nothing is written)'] };
+    case '/api/open': return { ok: true };
+  }
+  throw new Error('demo: unknown call ' + p);
+}
+if (DEMO) $('.brand').insertAdjacentHTML('beforeend', '<span class="tag warn" style="margin-left:10px;vertical-align:2px">demo data</span>');
+
+let toastTimer;
+function toast(html, undoable) {
+  const t = $('#toast'); t.innerHTML = html + (undoable ? ' <button id="toastUndo">Undo</button>' : '');
+  if (undoable) $('#toastUndo').onclick = () => { t.classList.remove('show'); undo(); };
+  t.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function load() {
+  const j = await api('/api/state');
+  Object.assign(S, { accounts: j.accounts, decisions: j.decisions, notes: j.notes || {}, buckets: j.buckets, special: j.special, keywords: j.keywords || {}, changes: j.changes, needsCollect: !!j.needsCollect });
+  const counts = {}; for (const a of S.accounts) counts[rel(a)] = (counts[rel(a)] || 0) + 1;
+  const sel = $('#rel'), prev = sel.value;
+  sel.innerHTML = `<option value="">all relationships (${fmtN(S.accounts.length)})</option>` + ['mutual', 'you_follow', 'follows_you', 'pending'].map(r => `<option value="${r}">${REL[r]} (${fmtN(counts[r] || 0)})</option>`).join('');
+  sel.value = prev;
+  const grp = $('#grp'), prevG = grp.value;
+  grp.innerHTML = '<option value="">any group</option><option value="auto">auto-filed only</option>' + groupsAll().map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('');
+  grp.value = prevG;
+  const ch = S.changes ? S.changes.unfollowed_you + S.changes.new_followers + S.changes.new_requests : 0;
+  $('#toggleChanges').innerHTML = 'Changes' + (ch ? `<span class="badge">${fmtN(ch)}</span>` : '');
+  renderBuckets(); rebuild();
+}
+
+function rebuild() {
+  const relF = $('#rel').value, q = norm($('#search').value), showDecided = $('#showDecided').checked, order = $('#order').value, grp = $('#grp').value;
+  $('#grp').style.display = showDecided ? '' : 'none';
+  const inGroup = a => { const d = S.decisions[a.pk]; if (!showDecided) return !d; if (!grp) return true; if (!d) return false; return grp === 'auto' ? !!d.auto : d.bucket === grp; };
+  const list = S.accounts.filter(a => (!relF || rel(a) === relF) && inGroup(a) && (!q || norm(a.username).includes(q) || norm(a.full_name).includes(q)));
+  const sugRank = order === 'sug' ? new Map(list.map(a => [a.pk, suggestIn(S.keywords, groupsAll(), [a.username, a.full_name]) ? 0 : 1])) : null;
+  list.sort((a, b) => (sugRank ? sugRank.get(a.pk) - sugRank.get(b.pk) : 0) || (order !== 'alpha' ? RANK[rel(a)] - RANK[rel(b)] : 0) || a.username.localeCompare(b.username));
+  S.queue = [...list.filter(a => !S.skipped.has(a.pk)), ...list.filter(a => S.skipped.has(a.pk))];
+  S.i = 0; show();
+}
+
+function pace() {
+  const now = Date.now(), today = new Date().toDateString();
+  const todayN = Object.values(S.decisions).filter(d => new Date(d.at).toDateString() === today && !d.auto).length;
+  const recent = S.times.filter(t => now - t < 10 * 60000).length;
+  const perMin = recent / Math.min(10, Math.max(1, (now - (S.times[0] || now)) / 60000));
+  const remaining = S.accounts.length - Object.keys(S.decisions).length;
+  const eta = perMin > 0.2 ? remaining / perMin : 0;
+  const etaTxt = eta ? (eta < 60 ? `~${Math.round(eta)} min` : `~${(eta / 60).toFixed(1)} h`) + ' to clear' : '';
+  return [todayN ? `today ${fmtN(todayN)}` : '', recent ? `${perMin.toFixed(1)}/min` : '', etaTxt].filter(Boolean).join(' · ');
+}
+
+function renderBuckets() {
+  const el = $('#buckets'); el.innerHTML = '';
+  const counts = {}; for (const d of Object.values(S.decisions)) counts[d.bucket] = (counts[d.bucket] || 0) + 1;
+  [...S.buckets.map((b, i) => [b, String(i + 1), false]), ...S.special.map(b => [b, '0', true])].forEach(([b, key, special]) => {
+    const d = document.createElement('div'); d.className = 'bucket' + (special ? ' special' : ''); d.dataset.bucket = b; d.style.setProperty('--c', color(b));
+    d.innerHTML = `<span class="dot"></span><span class="lbl" title="${esc(b)}">${esc(b)}</span><kbd>${key}</kbd><span class="n">${counts[b] || 0}</span>`;
+    d.onclick = () => decide(b);
+    el.appendChild(d);
+  });
+  const edit = document.createElement('div'); edit.className = 'editg';
+  edit.innerHTML = `<button class="sec" id="editGroups">${S.buckets.length ? 'Edit groups' : 'Create your groups'}</button>`;
+  el.appendChild(edit); $('#editGroups').onclick = () => setView('groups');
+  const help = document.createElement('div'); help.className = 'help';
+  help.innerHTML = `Drag the card onto a group, or:<br><kbd>1</kbd>–<kbd>${Math.max(1, S.buckets.length)}</kbd> groups · <kbd>0</kbd> ${esc(S.special[0] || '')}<br><kbd>Enter</kbd> accept suggestion · <kbd>space</kbd> skip<br><kbd>⌫</kbd> undo · <kbd>N</kbd> note · <kbd>O</kbd> open on Instagram · <kbd>/</kbd> search`;
+  el.appendChild(help);
+  const total = S.accounts.length, done = Object.keys(S.decisions).length;
+  $('#bar').style.width = (100 * done / Math.max(1, total)) + '%';
+  const p = pace();
+  $('#prog').textContent = `${fmtN(done)} / ${fmtN(total)} filed · ${fmtN(Math.max(0, S.queue.length - S.i))} in queue${p ? ' · ' + p : ''}`;
+}
+
+const current = () => S.queue[S.i];
+
+function profileFor(a) {
+  if (S.profiles[a.pk]) return S.profiles[a.pk];
+  const p = api('/api/profile?pk=' + a.pk).then(j => { S.profiles[a.pk] = j; return j; }).catch(e => { delete S.profiles[a.pk]; throw e; });
+  S.profiles[a.pk] = p; return p;
+}
+
+function flagsFor(a, p, posts) {
+  const t = [];
+  if (p?.is_bestie) t.push(['Close friend', 'good']);
+  if (p?.is_feed_favorite) t.push(['Favorite', 'good']);
+  if (p?.outgoing_request) t.push(['You requested to follow', 'warn']);
+  if (p?.is_restricted) t.push(['Restricted', 'bad']);
+  if (p?.muting) t.push(['Muted', 'bad']);
+  if (a.extra?.is_possible_scammer) t.push(['Possible scam', 'bad']);
+  if (a.is_verified || p?.is_verified) t.push(['Verified', 'acc']);
+  if (a.is_private || p?.is_private) t.push(['Private', '']);
+  if (p?.is_business) t.push(['Business account', '']); else if (p?.is_professional) t.push(['Professional account', '']);
+  if (p?.category) t.push([p.category, '']);
+  if (p?.city) t.push([p.city, '']);
+  if (p?.pronouns?.length) t.push([p.pronouns.join('/'), '']);
+  if (p) {
+    if (p.follower_count >= 100000) t.push(['100k+ followers', 'acc']); else if (p.follower_count >= 10000) t.push(['10k+ followers', 'acc']);
+    if (p.following_count >= 2000) t.push(['Follows 2k+', 'warn']);
+    if (p.mutual_followers_count === 0) t.push(['Nobody from your network', 'warn']); else if (p.mutual_followers_count >= 10) t.push([`${p.mutual_followers_count} from your network`, 'good']);
+    if (p.latest_reel_media > 0) t.push(['Recent story', 'good']);
+    if (p.external_url) t.push(['Link in bio', '']);
+    if (p.is_memorialized) t.push(['Memorialized', 'bad']);
+  }
+  if (a.extra?.has_anonymous_profile_picture) t.push(['No profile picture', 'warn']);
+  const lastTs = posts?.last ?? a.last_post;
+  if (lastTs && days(lastTs) > 365) t.push([`Inactive, last post ${ago(lastTs)}`, 'warn']);
+  else if ((posts && posts.n === 0) || (!posts && a.no_posts)) t.push(['No posts', 'warn']);
+  return t;
+}
+
+function renderBack(n) {
+  const el = $('#back');
+  if (!n) { el.innerHTML = ''; el.style.display = 'none'; return; }
+  el.style.display = '';
+  el.style.setProperty('--ring', RING[rel(n)]);
+  el.innerHTML = `<div class="head"><img class="avatar" src="${esc(n.pic || '')}" alt="" onerror="this.style.visibility='hidden'"><div class="who"><div class="name">${esc(n.full_name || n.username)}</div><div class="user">@${esc(n.username)}</div>
+    <div class="rel"><span class="rc ${n.you_follow ? 'on' : 'off'}">${n.you_follow ? '✓' : '✗'} you follow</span><span class="rc ${n.follows_you ? 'on' : 'off'}">${n.follows_you ? '✓' : '✗'} follows you</span></div></div></div>`;
+}
+
+function renderCard(a, p, posts, err) {
+  const card = $('#card');
+  const r = rel(a);
+  const lastTs = posts?.last ?? a.last_post; const noPosts = posts ? posts.n === 0 : a.no_posts;
+  const lastHtml = lastTs ? `<span class="${days(lastTs) > 365 ? 'old' : ''}">last post <b>${esc(ago(lastTs))}</b> (${fmtDate(lastTs)})</span>` : noPosts ? '<span class="old"><b>no posts</b></span>' : posts === undefined ? '<span>last post…</span>' : '';
+  const ctx = p ? (p.context?.length ? `Followed by ${p.context.map(u => `<span class="chip" data-u="${esc(u)}">@${esc(u)}</span>`).join('')}${p.mutual_followers_count > p.context.length ? `<span>and ${fmtN(p.mutual_followers_count - p.context.length)} more from your network</span>` : '<span>from your network</span>'}` : (p.mutual_followers_count ? `${fmtN(p.mutual_followers_count)} from your network follow` : 'Nobody from your network follows')) : '<span class="sk" style="display:inline-block;width:220px;height:14px;border-radius:4px"></span>';
+  const grid = posts === undefined
+    ? `<div class="grid">${Array.from({ length: 6 }, () => '<div class="sk"></div>').join('')}</div>`
+    : posts?.items?.length
+      ? `<div class="grid">${posts.items.slice(0, 9).map(it => `<div data-code="${esc(it.code)}" title="${esc(fmtDate(it.taken_at) + (it.likes != null ? ' · ' + fmtN(it.likes) + ' likes' : ''))}"><img src="${esc(it.thumb)}" alt="" loading="lazy">${it.pinned ? '<span class="b">pinned</span>' : it.media_type === 2 ? '<span class="b">video</span>' : it.carousel ? `<span class="b">${it.carousel}</span>` : ''}${it.caption ? `<span class="cap">${esc(it.caption)}</span>` : ''}</div>`).join('')}</div>`
+      : posts === null ? '' : '<div class="decided">No posts.</div>';
+  const dec = S.decisions[a.pk];
+  const note = S.notes[a.pk];
+  const sug = suggestFor(a, p); S.suggestion = sug;
+  card.style.setProperty('--ring', RING[r]);
+  card.innerHTML = `
+    <div class="stamp" id="stamp"></div>
+    <div class="head">
+      <img class="avatar" src="${esc(p?.pic || a.pic || '')}" alt="" onerror="this.style.visibility='hidden'">
+      <div class="who">
+        <div class="name">${esc(p?.full_name || a.full_name || a.username)}</div>
+        <div class="user">@${esc(a.username)}</div>
+        <div class="rel"><span class="rc ${a.you_follow ? 'on' : 'off'}">${a.you_follow ? '✓' : '✗'} you follow</span><span class="rc ${a.follows_you ? 'on' : 'off'}">${a.follows_you ? '✓' : '✗'} follows you</span>${a.pending_request || p?.incoming_request ? '<span class="rc warn">requested to follow you</span>' : ''}</div>
+        <div class="flags">${sug ? `<span class="tag sug" id="sug" style="--c:${color(sug.group)}" title="keywords: ${esc(sug.hits.join(', '))}">Suggestion: ${esc(sug.group)}<kbd>Enter</kbd></span>` : ''}${flagsFor(a, p, posts).map(([l, c]) => `<span class="tag ${c}">${esc(l)}</span>`).join('')}</div>
+      </div>
+    </div>
+    <div class="nums">${p ? `<span><b>${fmtN(p.follower_count)}</b> followers</span><span><b>${fmtN(p.following_count)}</b> following</span><span><b>${fmtN(p.media_count)}</b> posts</span>` : '<span class="sk" style="display:inline-block;width:260px;height:16px;border-radius:4px"></span>'}${lastHtml}</div>
+    ${p === null && !err ? '' : p ? (p.biography ? `<div class="bio">${esc(p.biography)}</div>` : '') : '<div class="sk" style="height:34px;border-radius:6px"></div>'}
+    ${p?.external_url ? `<div class="link">${esc(p.external_url)}</div>` : ''}
+    <div class="net">${ctx}</div>
+    ${grid}
+    <div class="note" id="note">${note ? `Note: <b>${esc(note)}</b>` : '<span>No note</span>'}<button class="sec" id="editNote" style="padding:3px 9px;font-size:12px">${note ? 'edit' : 'add note'}<kbd>N</kbd></button></div>
+    ${dec ? `<div class="decided" style="--c:${color(dec.bucket)}">${dec.auto ? 'Filed automatically' : 'Already filed'}: <b>${esc(dec.bucket)}</b>${dec.auto && dec.hits?.length ? ` <span>(keywords: ${esc(dec.hits.join(', '))})</span>` : ''}</div>` : ''}
+    ${err ? `<div class="err">${esc(err)}</div>` : ''}
+    <div class="actions">
+      <button class="sec" id="skip">Skip<kbd>space</kbd></button>
+      <button class="sec" id="undo">Undo<kbd>⌫</kbd></button>
+      <button class="sec" id="open">Open on Instagram<kbd>O</kbd></button>
+    </div>`;
+  card.querySelectorAll('.grid div[data-code]').forEach(d => d.onclick = () => openIg({ code: d.dataset.code }));
+  card.querySelectorAll('.chip[data-u]').forEach(c => c.onclick = () => openIg({ username: c.dataset.u }));
+  if (sug) $('#sug').onclick = () => decide(sug.group);
+  $('#editNote').onclick = () => editNote(a);
+  $('#skip').onclick = skip; $('#undo').onclick = undo; $('#open').onclick = () => openIg({ username: a.username });
+  const n = S.queue[S.i + 1];
+  renderBack(n);
+  $('#next').textContent = n ? `Next: ${n.full_name || ''} @${n.username}` : '';
+}
+
+// Notes are the user's own reminders; they live beside the decision and go to the CSV.
+function editNote(a) {
+  const box = $('#note'); if (!box) return;
+  box.innerHTML = `<input type="text" id="noteInput" maxlength="500" placeholder="note about this account (Enter saves, Esc cancels)" value="${esc(S.notes[a.pk] || '')}">`;
+  const inp = $('#noteInput'); inp.focus();
+  inp.onkeydown = async e => {
+    if (e.key === 'Escape') { e.preventDefault(); renderNote(a); return; }
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    try { const j = await api('/api/note', { pk: a.pk, note: inp.value }); if (j.note) S.notes[a.pk] = j.note; else delete S.notes[a.pk]; renderNote(a); toast(j.note ? 'Note saved' : 'Note removed'); }
+    catch (err) { banner('Could not save the note: ' + err.message); }
+  };
+  inp.onblur = () => { if ($('#noteInput')) renderNote(a); };
+}
+function renderNote(a) {
+  const box = $('#note'); if (!box) return;
+  const note = S.notes[a.pk];
+  box.innerHTML = `${note ? `Note: <b>${esc(note)}</b>` : '<span>No note</span>'}<button class="sec" id="editNote" style="padding:3px 9px;font-size:12px">${note ? 'edit' : 'add note'}<kbd>N</kbd></button>`;
+  $('#editNote').onclick = () => editNote(a);
+}
+
+// While dragging or flying, the card leaves the scroll container (fixed layer at the same screen rect) so it can cross over the group column.
+function lift() {
+  const card = $('#card'); if (card.classList.contains('lifted')) return;
+  const r = card.getBoundingClientRect();
+  $('#ph').style.cssText = `display:block;height:${r.height}px`;
+  Object.assign(card.style, { position: 'fixed', left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', zIndex: 50 });
+  card.classList.add('lifted');
+}
+function drop() {
+  const card = $('#card');
+  Object.assign(card.style, { position: '', left: '', top: '', width: '', height: '', zIndex: '' });
+  card.classList.remove('lifted'); $('#ph').style.cssText = '';
+}
+
+async function show() {
+  const a = current(); const card = $('#card');
+  drop();
+  card.style.transition = 'none'; card.style.transform = ''; card.style.opacity = '';
+  try { const an = card.animate([{ transform: 'translateY(10px) scale(.97)', opacity: .4 }, { transform: 'none', opacity: 1 }], { duration: 180, easing: 'ease-out' }); setTimeout(() => an.finish(), 260); } catch {}
+  renderBuckets();
+  if (!a) { card.innerHTML = `<div class="empty">${S.needsCollect ? 'No accounts collected yet. In a terminal, run <code style="margin:0 6px">bun run collect</code> and reload.' : 'Queue is empty for this filter.'}</div>`; renderBack(null); $('#next').textContent = ''; S.suggestion = null; return; }
+  const token = a.pk;
+  renderCard(a, undefined, undefined);
+  let p = null;
+  try { p = (await profileFor(a)).profile; if (current()?.pk !== token) return; renderCard(a, p, undefined); banner(''); }
+  catch (e) { if (current()?.pk !== token) return; renderCard(a, null, null, 'Live profile unavailable: ' + e.message); banner(e.message); }
+  try { const j = await api('/api/posts?pk=' + a.pk); if (current()?.pk !== token) return; renderCard(a, p, j.posts); }
+  catch (e) { if (current()?.pk !== token) return; renderCard(a, p, null, 'Posts unavailable: ' + e.message); }
+  for (const nx of S.queue.slice(S.i + 1, S.i + 3)) Promise.resolve(profileFor(nx)).catch(() => {});
+}
+
+function stamp(bucket) {
+  const s = $('#stamp'); if (!s) return;
+  if (!bucket) { s.classList.remove('show'); return; }
+  s.textContent = bucket; s.style.setProperty('--c', color(bucket)); s.classList.add('show');
+}
+
+// The card flies into the chosen bucket (Tinder-style), then the next one slides in.
+async function flyTo(bucket) {
+  const card = $('#card'); const b = document.querySelector(`.bucket[data-bucket="${CSS.escape(bucket)}"]`);
+  stamp(bucket);
+  if (b) {
+    b.classList.add('flash'); setTimeout(() => b.classList.remove('flash'), 350);
+    lift();
+    const cr = card.getBoundingClientRect(), br = b.getBoundingClientRect();
+    const dx = br.left + br.width / 2 - (cr.left + cr.width / 2), dy = br.top + br.height / 2 - (cr.top + cr.height / 2);
+    card.style.transition = 'transform .24s ease-in, opacity .24s ease-in';
+    card.style.transform = `translate(${dx}px, ${dy}px) scale(.35) rotate(${Math.max(-25, Math.min(25, dx / 14))}deg)`;
+    card.style.opacity = '0';
+    await sleep(240);
+  }
+}
+
+let deciding = false;
+async function decide(bucket) {
+  const a = current(); if (!a || deciding) return;
+  deciding = true;
+  try {
+    const prev = S.decisions[a.pk] || null;
+    try { await api('/api/decide', { pk: a.pk, bucket }); } catch (e) { banner('Could not save the decision: ' + e.message); return; }
+    S.decisions[a.pk] = { bucket, at: new Date().toISOString(), username: a.username };
+    S.history.push({ a, prev, index: S.i });
+    S.times.push(Date.now());
+    toast(`${esc(a.full_name || '@' + a.username)} → <b style="--c:${color(bucket)}">${esc(bucket)}</b>`, true);
+    await flyTo(bucket);
+    if (!$('#showDecided').checked) S.queue.splice(S.i, 1); else S.i++;
+    show();
+  } finally { deciding = false; }
+}
+
+async function undo() {
+  const h = S.history.pop(); if (!h) { toast('Nothing to undo'); return; }
+  try {
+    if (h.prev) { await api('/api/decide', { pk: h.a.pk, bucket: h.prev.bucket }); S.decisions[h.a.pk] = { ...h.prev, at: new Date().toISOString() }; }
+    else { await api('/api/undecide', { pk: h.a.pk }); delete S.decisions[h.a.pk]; }
+  } catch (e) { banner('Could not undo: ' + e.message); return; }
+  S.times.pop();
+  if (!$('#showDecided').checked) { S.queue.splice(h.index, 0, h.a); S.i = h.index; } else S.i = h.index;
+  toast(`Undone: @${esc(h.a.username)}`);
+  show();
+}
+
+function skip() {
+  const a = current(); if (!a) return;
+  S.skipped.add(a.pk); localStorage.setItem('skipped', JSON.stringify([...S.skipped]));
+  S.queue.splice(S.i, 1); S.queue.push(a); show();
+}
+
+function renderLists() {
+  const el = $('#lists'); const all = groupsAll();
+  if (!S.listBucket || !all.includes(S.listBucket)) S.listBucket = all[0];
+  const counts = {}, autos = {}; for (const d of Object.values(S.decisions)) { counts[d.bucket] = (counts[d.bucket] || 0) + 1; if (d.auto) autos[d.bucket] = (autos[d.bucket] || 0) + 1; }
+  const q = norm(S.listQuery);
+  const rows = S.accounts.filter(a => { const d = S.decisions[a.pk]; return d?.bucket === S.listBucket && (!S.listAuto || d.auto) && (!q || norm(a.username).includes(q) || norm(a.full_name).includes(q) || norm(S.notes[a.pk]).includes(q)); }).sort((a, b) => a.username.localeCompare(b.username));
+  for (const pk of [...S.selected]) if (!rows.some(a => a.pk === pk)) S.selected.delete(pk);
+  const sel = S.selected.size;
+  el.innerHTML = `<nav>${all.map(b => `<button class="${b === S.listBucket ? 'on' : ''}" data-b="${esc(b)}" style="--c:${color(b)}"><span class="dot"></span>${esc(b)} <span class="n">${counts[b] || 0}${autos[b] ? ` · ${autos[b]} auto` : ''}</span></button>`).join('')}
+      <input type="text" id="lsearch" placeholder="filter (name, @ or note)" value="${esc(S.listQuery)}" style="min-width:160px"><label class="chk"><input type="checkbox" id="lauto" ${S.listAuto ? 'checked' : ''}> auto-filed only</label><button class="sec" id="copy">Copy @s</button><button id="export">Export CSV/TXT</button></nav>
+    <div class="selbar"><label class="chk"><input type="checkbox" id="selAll" ${rows.length && sel === rows.length ? 'checked' : ''}> select all</label><span><b>${sel}</b> selected</span><select id="moveTo"><option value="">move to…</option>${all.filter(b => b !== S.listBucket).map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('')}</select><button class="sec" id="moveBtn" ${sel ? '' : 'disabled'}>Move</button><button class="sec" id="rmSel" ${sel ? '' : 'disabled'}>Remove from group</button></div>
+    <table><thead><tr><th></th><th>Account</th><th>Relationship</th><th>Note</th><th>Group</th><th></th></tr></thead><tbody>
+    ${rows.map(a => `<tr data-pk="${a.pk}"><td><input type="checkbox" class="sel" ${S.selected.has(a.pk) ? 'checked' : ''}></td><td><img src="${esc(S.profiles[a.pk]?.profile?.pic || a.pic || '')}" alt="" onerror="this.style.visibility='hidden'">${esc(a.full_name || '')}<span class="u">@${esc(a.username)}</span>${S.decisions[a.pk].auto ? ' <span class="tag warn" title="filed by the keyword rules">auto</span>' : ''}</td><td><span class="rc ${rel(a) === 'mutual' ? 'on' : ''}">${esc(REL[rel(a)])}</span></td><td style="color:var(--muted);font-size:12px">${esc(S.notes[a.pk] || '')}</td>
+      <td><select style="border-color:${color(S.listBucket)}">${all.map(b => `<option ${b === S.listBucket ? 'selected' : ''}>${esc(b)}</option>`).join('')}</select></td>
+      <td><button class="sec open">view</button> <button class="sec rm">remove</button></td></tr>`).join('')}
+    </tbody></table>${rows.length ? '' : '<div class="decided" style="padding:14px 0">No accounts in this group.</div>'}<div id="paths"></div>`;
+  el.querySelectorAll('nav button[data-b]').forEach(b => b.onclick = () => { S.listBucket = b.dataset.b; S.selected.clear(); renderLists(); });
+  let t; $('#lsearch').oninput = e => { clearTimeout(t); t = setTimeout(() => { S.listQuery = e.target.value; renderLists(); $('#lsearch').focus(); }, 200); };
+  $('#lauto').onchange = e => { S.listAuto = e.target.checked; renderLists(); };
+  $('#copy').onclick = async () => { try { await navigator.clipboard.writeText(rows.map(a => '@' + a.username).join('\n')); toast(`${rows.length} @s copied`); } catch { $('#paths').textContent = rows.map(a => '@' + a.username).join('\n'); } };
+  $('#export').onclick = async () => { try { const j = await api('/api/export', {}); $('#paths').textContent = 'Files:\n' + j.files.join('\n'); } catch (e) { banner(e.message); } };
+  $('#selAll').onchange = e => { if (e.target.checked) rows.forEach(a => S.selected.add(a.pk)); else S.selected.clear(); renderLists(); };
+  $('#moveBtn').onclick = async () => { const to = $('#moveTo').value; if (!to || !S.selected.size) return; try { const pks = [...S.selected]; await api('/api/bulk', { pks, bucket: to }); for (const pk of pks) S.decisions[pk] = { ...S.decisions[pk], bucket: to, auto: false, at: new Date().toISOString() }; S.selected.clear(); toast(`${pks.length} moved to ${esc(to)}`); renderLists(); } catch (e) { banner(e.message); } };
+  $('#rmSel').onclick = async () => { if (!S.selected.size) return; try { const pks = [...S.selected]; await api('/api/undecide', { pks }); for (const pk of pks) delete S.decisions[pk]; S.selected.clear(); toast(`${pks.length} removed from the group`); renderLists(); } catch (e) { banner(e.message); } };
+  el.querySelectorAll('tbody tr').forEach(tr => {
+    const pk = tr.dataset.pk; const a = S.accounts.find(x => x.pk === pk);
+    tr.querySelector('.sel').onchange = e => { if (e.target.checked) S.selected.add(pk); else S.selected.delete(pk); renderLists(); };
+    tr.querySelector('select').onchange = async e => { try { await api('/api/decide', { pk, bucket: e.target.value }); S.decisions[pk] = { bucket: e.target.value, at: new Date().toISOString(), username: a.username }; renderLists(); } catch (err) { banner(err.message); } };
+    tr.querySelector('.open').onclick = () => openIg({ username: a.username });
+    tr.querySelector('.rm').onclick = async () => { try { await api('/api/undecide', { pk }); delete S.decisions[pk]; renderLists(); } catch (err) { banner(err.message); } };
+  });
+}
+
+// Changes since the previous collection: the recurring reason to come back.
+async function renderChanges() {
+  const el = $('#changes');
+  el.innerHTML = '<div class="decided">Loading…</div>';
+  let c = null;
+  try { c = await api('/api/changes'); } catch (e) { el.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  if (!c) { el.innerHTML = '<div class="decided">No previous collection to compare with yet. Run <code>bun run collect</code> again in a few days and the changes show up here.</div>'; return; }
+  const all = groupsAll();
+  const section = (title, list, hint) => `<h3>${title} <span class="n">${fmtN(list.length)}</span>${hint ? ` <span style="font-weight:400">· ${hint}</span>` : ''}</h3>` + (list.length ? `<table><tbody>${list.map(a => { const d = S.decisions[a.pk]; return `<tr data-pk="${esc(a.pk)}"><td><img src="${esc(a.pic || '')}" alt="" onerror="this.style.visibility='hidden'">${esc(a.full_name || '')}<span class="u">@${esc(a.username)}</span></td><td><span class="rc ${rel(a) === 'mutual' ? 'on' : ''}">${esc(REL[rel(a)])}</span></td><td>${d ? `<span class="tag" style="border-color:${color(d.bucket)};color:${color(d.bucket)}">${esc(d.bucket)}</span>` : `<select class="file"><option value="">file in…</option>${all.map(b => `<option value="${esc(b)}">${esc(b)}</option>`).join('')}</select>`}</td><td><button class="sec open">view</button></td></tr>`; }).join('')}</tbody></table>` : '<div class="decided">None.</div>');
+  el.innerHTML = `<div class="hint" style="color:var(--muted);font-size:13px">Comparing the collection of ${new Date(c.at).toLocaleString('en-US')} with the previous one${c.previous_at ? ` (${new Date(c.previous_at).toLocaleString('en-US')})` : ''}.</div>
+    ${section('Unfollowed you', c.unfollowed_you)}
+    ${section('New followers', c.new_followers)}
+    ${section('Requested to follow you', c.new_requests, 'new pending requests')}
+    ${section('You unfollowed', c.you_unfollowed)}
+    ${section('You started following', c.you_followed)}`;
+  el.querySelectorAll('tr').forEach(tr => {
+    const pk = tr.dataset.pk; const a = S.accounts.find(x => x.pk === pk) || c.unfollowed_you.concat(c.you_unfollowed).find(x => x.pk === pk);
+    tr.querySelector('.open').onclick = () => openIg({ username: a.username });
+    const f = tr.querySelector('.file'); if (f) f.onchange = async e => { if (!e.target.value || !S.accounts.some(x => x.pk === pk)) return; try { await api('/api/decide', { pk, bucket: e.target.value }); S.decisions[pk] = { bucket: e.target.value, at: new Date().toISOString(), username: a.username }; renderChanges(); } catch (err) { banner(err.message); } };
+  });
+}
+
+function setView(view) {
+  S.view = view;
+  $('#main').style.display = view === 'triage' ? '' : 'none';
+  for (const v of ['lists', 'groups', 'changes']) $('#' + v).style.display = view === v ? 'block' : 'none';
+  $('#toggleLists').textContent = view === 'lists' ? 'Back to triage' : 'Lists';
+  $('#toggleGroups').textContent = view === 'groups' ? 'Back to triage' : 'Groups';
+  if (view !== 'changes') { const ch = S.changes ? S.changes.unfollowed_you + S.changes.new_followers + S.changes.new_requests : 0; $('#toggleChanges').innerHTML = 'Changes' + (ch ? `<span class="badge">${fmtN(ch)}</span>` : ''); } else $('#toggleChanges').textContent = 'Back to triage';
+  if (view === 'lists') renderLists(); else if (view === 'groups') renderGroups(); else if (view === 'changes') renderChanges(); else rebuild();
+}
+$('#toggleLists').onclick = () => setView(S.view === 'lists' ? 'triage' : 'lists');
+$('#toggleGroups').onclick = () => setView(S.view === 'groups' ? 'triage' : 'groups');
+$('#toggleChanges').onclick = () => setView(S.view === 'changes' ? 'triage' : 'changes');
+
+// Groups editor: names and keywords are the user's. Renames migrate decisions server-side; a group with accounts cannot be removed.
+const G = { buckets: [], special: [], preview: null };
+function loadGroupsEditor() {
+  const mk = b => ({ name: b, orig: b, kw: (S.keywords[b] || []).join(', ') });
+  G.buckets = S.buckets.map(mk); G.special = S.special.map(mk); G.preview = null;
+}
+function renderGroups() {
+  const el = $('#groups');
+  const row = (list, i, kind) => `<div class="grow" data-kind="${kind}" data-i="${i}"><span class="dot" style="background:${kind === 'b' ? PALETTE[i % PALETTE.length] : '#6f7280'}"></span><kbd>${kind === 'b' ? i + 1 : 0}</kbd><input type="text" class="nm" value="${esc(list[i].name)}" maxlength="40" placeholder="group name"><button class="sec up" title="move up">↑</button><button class="sec down" title="move down">↓</button><button class="sec rm" title="remove">✕</button>
+    <input type="text" class="kw" value="${esc(list[i].kw)}" placeholder="keywords for suggestions, comma-separated (e.g. surname, city, profession, hashtag)"></div>`;
+  const hasKw = Object.values(S.keywords).some(w => w.length);
+  const prev = G.preview;
+  el.innerHTML = `<h3>Your groups (keys 1–9)</h3><div class="hint">${S.buckets.length ? 'Each group can carry keywords: when an account\'s bio, name or @ matches them, the card shows a suggestion (Enter accepts). Renaming migrates the accounts already filed; only an empty group can be removed.' : 'No groups yet. Create the groups that make sense for you, for example one per profile you plan to have, and optionally keywords for automatic suggestions.'}</div>
+    ${G.buckets.map((_, i) => row(G.buckets, i, 'b')).join('')}
+    <div class="add"><input type="text" id="newGroup" placeholder="new group" maxlength="40"><button id="addGroup">Add</button></div>
+    <h3>Special action (key 0)</h3>${G.special.map((_, i) => row(G.special, i, 's')).join('')}
+    <div class="add"><button id="saveGroups">Save</button><button class="sec" id="cancelGroups">Cancel</button></div><div class="err" id="groupsErr"></div>
+    <div class="auto-panel"><b>Auto-sort</b><div class="hint" style="margin:4px 0 0">Files, in one go, every undecided account whose keywords match (save the groups first). Accounts filed this way are flagged <span class="tag warn">auto</span> so you can review them in Lists, or in the triage with "include filed → auto-filed only".</div>
+      <div class="r"><label class="chk">require <select id="minHits"><option value="1">1 keyword</option><option value="2" selected>2 keywords</option><option value="3">3 keywords</option></select></label><button class="sec" id="previewAuto" ${hasKw ? '' : 'disabled'}>Preview</button><button id="applyAuto" ${prev && prev.total ? '' : 'disabled'}>Apply${prev && prev.total ? ` (${fmtN(prev.total)})` : ''}</button></div>
+      <div class="prev" id="autoPrev">${prev ? (prev.total ? Object.entries(prev.counts).map(([g, n]) => `<b>${esc(g)}</b>: ${fmtN(n)}`).join(' · ') : 'No account matches this minimum.') : (hasKw ? '' : 'Define keywords in at least one group and save.')}</div></div>`;
+  el.querySelectorAll('.grow').forEach(r => {
+    const list = r.dataset.kind === 'b' ? G.buckets : G.special, i = +r.dataset.i;
+    r.querySelector('.nm').oninput = e => { list[i].name = e.target.value; };
+    r.querySelector('.kw').oninput = e => { list[i].kw = e.target.value; };
+    r.querySelector('.up').onclick = () => { if (i > 0) { [list[i - 1], list[i]] = [list[i], list[i - 1]]; renderGroups(); } };
+    r.querySelector('.down').onclick = () => { if (i < list.length - 1) { [list[i + 1], list[i]] = [list[i], list[i + 1]]; renderGroups(); } };
+    r.querySelector('.rm').onclick = () => { list.splice(i, 1); renderGroups(); };
+  });
+  const add = () => { const v = $('#newGroup').value.trim(); if (!v) return; if (G.buckets.length >= 9) { $('#groupsErr').textContent = 'At most 9 groups (keys 1–9).'; return; } G.buckets.push({ name: v, orig: null, kw: '' }); renderGroups(); $('#newGroup').focus(); };
+  $('#addGroup').onclick = add; $('#newGroup').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); add(); } };
+  $('#cancelGroups').onclick = () => { loadGroupsEditor(); setView(S.buckets.length ? 'triage' : 'groups'); };
+  $('#saveGroups').onclick = async () => {
+    const renames = {}, keywords = {};
+    for (const g of [...G.buckets, ...G.special]) {
+      const name = g.name.trim();
+      if (g.orig && g.orig !== name) renames[g.orig] = name;
+      const words = g.kw.split(',').map(w => w.trim()).filter(Boolean);
+      if (words.length) keywords[name] = words;
+    }
+    try { await api('/api/groups', { buckets: G.buckets.map(g => g.name), special: G.special.map(g => g.name), keywords, renames }); await load(); loadGroupsEditor(); toast('Groups saved'); renderGroups(); }
+    catch (e) { $('#groupsErr').textContent = e.message; }
+  };
+  $('#minHits').onchange = () => { G.preview = null; renderGroups(); };
+  $('#previewAuto').onclick = async () => { try { G.preview = await api('/api/autosort', { minHits: +$('#minHits').value, apply: false }); renderGroups(); } catch (e) { $('#groupsErr').textContent = e.message; } };
+  $('#applyAuto').onclick = async () => { try { const r = await api('/api/autosort', { minHits: +$('#minHits').value, apply: true }); G.preview = null; await load(); toast(`${fmtN(r.total)} accounts filed automatically`); renderGroups(); } catch (e) { $('#groupsErr').textContent = e.message; } };
+}
+['#rel', '#order', '#showDecided', '#grp'].forEach(s => $(s).onchange = rebuild);
+let searchTimer; $('#search').oninput = () => { clearTimeout(searchTimer); searchTimer = setTimeout(rebuild, 200); };
+
+// Swipe: press on the card, drag (it tilts and stamps the group under the pointer), release over a group to file it; release elsewhere springs back.
+const card = $('#card');
+let drag = null;
+const bucketUnder = (x, y) => document.elementFromPoint(x, y)?.closest('.bucket') || null;
+const markOver = over => { document.querySelectorAll('.bucket.over').forEach(b => { if (b !== over) b.classList.remove('over'); }); over?.classList.add('over'); };
+card.onpointerdown = e => {
+  if (e.button !== 0 || e.target.closest('button, a, select, input, .chip, .grid, .tag.sug') || !current() || deciding) return;
+  e.preventDefault();
+  drag = { x0: e.clientX, y0: e.clientY, active: false };
+};
+document.onpointermove = e => {
+  if (!drag) return;
+  const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
+  if (!drag.active) { if (Math.hypot(dx, dy) < 8) return; drag.active = true; lift(); card.classList.add('dragging'); card.style.transition = 'none'; card.style.pointerEvents = 'none'; }
+  card.style.transform = `translate(${dx}px, ${dy}px) rotate(${Math.max(-18, Math.min(18, dx / 16))}deg)`;
+  const over = bucketUnder(e.clientX, e.clientY);
+  markOver(over); stamp(over?.dataset.bucket || null);
+};
+document.onpointerup = e => {
+  if (!drag) return;
+  const was = drag; drag = null;
+  if (!was.active) return;
+  const over = bucketUnder(e.clientX, e.clientY);
+  card.classList.remove('dragging'); card.style.pointerEvents = '';
+  markOver(null);
+  if (over) { decide(over.dataset.bucket); return; }
+  stamp(null);
+  card.style.transition = 'transform .32s cubic-bezier(.2,.9,.3,1.25)';
+  card.style.transform = '';
+  setTimeout(() => { if (!drag && !deciding) drop(); }, 340);
+};
+
+document.addEventListener('keydown', e => {
+  const typing = /^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement?.tagName || '');
+  if (e.key === '/' && !typing) { e.preventDefault(); $('#search').focus(); return; }
+  if (typing) { if (e.key === 'Escape') document.activeElement.blur(); return; }
+  if (S.view !== 'triage' || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (/^[1-9]$/.test(e.key) && S.buckets[+e.key - 1]) { e.preventDefault(); decide(S.buckets[+e.key - 1]); }
+  else if (e.key === '0' && S.special[0]) { e.preventDefault(); decide(S.special[0]); }
+  else if (e.key === 'Enter' && S.suggestion) { e.preventDefault(); decide(S.suggestion.group); }
+  else if (e.key === ' ') { e.preventDefault(); skip(); }
+  else if (e.key === 'Backspace' || e.key.toLowerCase() === 'u') { e.preventDefault(); undo(); }
+  else if (e.key.toLowerCase() === 'n') { e.preventDefault(); const a = current(); if (a) editNote(a); }
+  else if (e.key.toLowerCase() === 'o') { e.preventDefault(); const a = current(); if (a) openIg({ username: a.username }); }
+});
+
+// Test hooks (module scope is private): the UI state and a few actions, for scripted checks only.
+window.__insorter = { S, current: () => current(), decide, undo };
+load().then(() => { loadGroupsEditor(); if (!S.buckets.length) setView('groups'); }).catch(e => banner('Could not load: ' + e.message));
+</script>
+</body>
+</html>

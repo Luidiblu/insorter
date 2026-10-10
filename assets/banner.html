@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Insorter banner</title>
+<style>
+/* Source of assets/banner.png. Render: open in Chromium at 2400×800 and screenshot #banner. */
+* { box-sizing:border-box }
+html, body { margin:0; background:#05060a }
+#banner { position:relative; width:2400px; height:800px; overflow:hidden; background:#05060a; font-family:-apple-system, "SF Pro Display", "Helvetica Neue", Inter, Arial, sans-serif; color:#eef0f5 }
+.glow { position:absolute; border-radius:50%; filter:blur(100px) }
+.g1 { width:900px; height:700px; left:-200px; top:-250px; background:#6b3df5; opacity:.5 }
+.g2 { width:1000px; height:800px; right:-250px; top:-150px; background:#1f9d90; opacity:.42 }
+.g3 { width:600px; height:500px; left:900px; bottom:-300px; background:#e0317f; opacity:.4 }
+.grid { position:absolute; left:-30%; right:-30%; bottom:-80px; height:700px; transform:perspective(650px) rotateX(64deg); transform-origin:50% 100%;
+  background-image:linear-gradient(rgba(224,95,160,.32) 2px, transparent 2px), linear-gradient(90deg, rgba(124,147,255,.3) 2px, transparent 2px);
+  background-size:110px 110px; -webkit-mask-image:linear-gradient(transparent 0%, #000 60%); mask-image:linear-gradient(transparent 0%, #000 60%) }
+.horizon { position:absolute; left:0; right:0; top:540px; height:3px; background:linear-gradient(90deg, transparent, #e05fa0 20%, #7c93ff 50%, #2bb3a3 80%, transparent); box-shadow:0 0 30px rgba(224,95,160,.6); opacity:.8 }
+.rays { position:absolute; left:380px; top:-200px; width:1200px; height:1200px; background:conic-gradient(from 200deg at 50% 50%, transparent 0 12deg, rgba(255,255,255,.05) 12deg 14deg, transparent 14deg 30deg, rgba(124,147,255,.07) 30deg 33deg, transparent 33deg 52deg, rgba(43,179,163,.06) 52deg 54deg, transparent 54deg 360deg); filter:blur(2px) }
+.scan { position:absolute; inset:0; background:repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 2px, transparent 2px 5px) }
+.noise { position:absolute; inset:0; opacity:.08; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") }
+.vignette { position:absolute; inset:0; background:radial-gradient(1500px 800px at 50% 45%, transparent 45%, rgba(0,0,0,.6) 100%) }
+
+.ig { position:absolute; left:130px; top:250px; width:330px; height:330px; filter:drop-shadow(0 0 40px rgba(253,89,73,.55)) drop-shadow(0 0 90px rgba(214,36,159,.45)) }
+.ig::after { content:""; position:absolute; left:40px; right:40px; bottom:-70px; height:60px; border-radius:50%; background:radial-gradient(ellipse, rgba(214,36,159,.6), transparent 70%); filter:blur(12px) }
+.spark { position:absolute; width:5px; height:5px; border-radius:50%; background:#fff; box-shadow:0 0 14px #fff, 0 0 30px #ffb04d; opacity:.85 }
+
+.card { position:absolute; width:180px; height:240px; border-radius:22px; background:linear-gradient(160deg, rgba(80,90,140,.55), rgba(18,22,36,.8)); border:2px solid color-mix(in srgb, var(--c) 70%, #fff); box-shadow:0 0 34px color-mix(in srgb, var(--c) 60%, transparent), 0 30px 60px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.1); transform:rotate(var(--r)) }
+.card .av { position:absolute; left:50%; top:28px; width:78px; height:78px; margin-left:-39px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff, var(--c) 55%, #141828); box-shadow:0 0 0 4px rgba(5,6,10,.6), 0 0 0 7px var(--c), 0 0 26px var(--c) }
+.card .ln { position:absolute; left:32px; right:32px; top:126px; height:11px; border-radius:6px; background:rgba(235,240,255,.8) }
+.card .ln + .ln { top:148px; right:70px; background:rgba(235,240,255,.45) }
+.card .pills { position:absolute; left:32px; right:32px; top:184px; display:flex; gap:8px }
+.card .pills i { flex:1; height:20px; border-radius:10px; border:2px solid var(--c); box-shadow:0 0 10px color-mix(in srgb, var(--c) 60%, transparent) }
+.trail { position:absolute; width:180px; height:240px; border-radius:22px; border:2px solid var(--c); opacity:var(--o); transform:rotate(var(--r)); filter:blur(1px) }
+
+.bubble { position:absolute; border-radius:50%; border:4px solid var(--c); background:radial-gradient(circle at 40% 35%, color-mix(in srgb, var(--c) 22%, transparent), color-mix(in srgb, var(--c) 6%, transparent) 60%, transparent 72%); box-shadow:0 0 60px color-mix(in srgb, var(--c) 55%, transparent), inset 0 0 80px color-mix(in srgb, var(--c) 25%, transparent) }
+.bubble::before { content:""; position:absolute; inset:-14px; border-radius:50%; border:1px solid color-mix(in srgb, var(--c) 45%, transparent) }
+.dot { position:absolute; width:26px; height:26px; border-radius:50%; background:radial-gradient(circle at 35% 30%, #fff, var(--c) 60%, #0d1020); box-shadow:0 0 0 3px #05060a, 0 0 0 5px var(--c), 0 0 16px var(--c) }
+
+.title { position:absolute; left:520px; top:46px }
+.word { position:relative; font-size:200px; font-weight:900; letter-spacing:12px; line-height:1; text-transform:uppercase; font-style:italic; background:linear-gradient(180deg, #fff 0%, #ffd9f0 40%, #ff5fb8 62%, #7c93ff 100%); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 26px rgba(255,95,184,.65)) drop-shadow(0 0 80px rgba(124,147,255,.45)) }
+.word::before, .word::after { content:attr(data-t); position:absolute; left:0; top:0; -webkit-background-clip:text; background-clip:text; color:transparent }
+.word::before { background:#4ff0dc; transform:translate(-12px, 3px); opacity:.5; clip-path:polygon(0 34%, 100% 34%, 100% 41%, 0 41%) }
+.word::after { background:#ff5fb8; transform:translate(14px, -4px); opacity:.5; clip-path:polygon(0 60%, 100% 60%, 100% 68%, 0 68%) }
+.kana { margin-top:14px; margin-left:12px; font-size:42px; font-weight:600; letter-spacing:14px; color:#4ff0dc; text-shadow:0 0 18px rgba(79,240,220,.8); font-family:"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif }
+.kana span { color:#8c90a0; font-family:-apple-system, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; letter-spacing:4px; text-shadow:none; margin-left:30px; font-weight:500; font-size:32px; text-transform:lowercase }
+.hud { position:absolute; width:90px; height:90px; border:3px solid rgba(255,95,184,.55) }
+.hud.tl { left:48px; top:48px; border-right:none; border-bottom:none }
+.hud.br { right:48px; bottom:48px; border-left:none; border-top:none }
+</style>
+</head>
+<body>
+<div id="banner">
+  <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+  <div class="rays"></div>
+  <div class="grid"></div><div class="horizon"></div>
+
+  <svg class="ig" viewBox="0 0 64 64">
+    <defs><radialGradient id="igg" cx="30%" cy="107%" r="150%"><stop offset="0" stop-color="#fdf497"/><stop offset=".05" stop-color="#fdf497"/><stop offset=".45" stop-color="#fd5949"/><stop offset=".6" stop-color="#d6249f"/><stop offset=".9" stop-color="#285AEB"/></radialGradient></defs>
+    <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#igg)"/>
+    <rect x="12.5" y="12.5" width="39" height="39" rx="11" fill="none" stroke="#fff" stroke-width="4.5"/>
+    <circle cx="32" cy="32" r="9.5" fill="none" stroke="#fff" stroke-width="4.5"/>
+    <circle cx="44.5" cy="19.5" r="2.9" fill="#fff"/>
+  </svg>
+  <div class="spark" style="left:470px;top:300px"></div><div class="spark" style="left:520px;top:380px;width:3px;height:3px"></div>
+  <div class="spark" style="left:455px;top:470px;width:4px;height:4px"></div><div class="spark" style="left:560px;top:250px;width:3px;height:3px;opacity:.5"></div>
+
+  <!-- cards dealt from the glyph into the bubbles -->
+  <div class="trail" style="--c:#f0a04b;--r:-30deg;--o:.14;left:470px;top:500px"></div>
+  <div class="trail" style="--c:#f0a04b;--r:-26deg;--o:.28;left:500px;top:475px"></div>
+  <div class="card" style="--c:#f0a04b;--r:-22deg;left:540px;top:450px"><div class="av"></div><div class="ln"></div><div class="ln"></div><div class="pills"><i></i><i></i><i></i></div></div>
+
+  <div class="trail" style="--c:#e05fa0;--r:-16deg;--o:.18;left:750px;top:430px"></div>
+  <div class="card" style="--c:#e05fa0;--r:-12deg;left:795px;top:405px"><div class="av"></div><div class="ln"></div><div class="ln"></div><div class="pills"><i></i><i></i><i></i></div></div>
+
+  <div class="trail" style="--c:#7c93ff;--r:-6deg;--o:.18;left:1005px;top:400px"></div>
+  <div class="card" style="--c:#7c93ff;--r:-3deg;left:1050px;top:380px"><div class="av"></div><div class="ln"></div><div class="ln"></div><div class="pills"><i></i><i></i><i></i></div></div>
+
+  <div class="trail" style="--c:#4ff0dc;--r:5deg;--o:.18;left:1255px;top:400px"></div>
+  <div class="card" style="--c:#4ff0dc;--r:9deg;left:1300px;top:395px"><div class="av"></div><div class="ln"></div><div class="ln"></div><div class="pills"><i></i><i></i><i></i></div></div>
+
+  <!-- bubbles: the groups -->
+  <div class="bubble" style="--c:#e05fa0;left:1560px;top:330px;width:260px;height:260px">
+    <div class="dot" style="--c:#e05fa0;left:70px;top:90px"></div><div class="dot" style="--c:#ff9ccf;left:160px;top:60px"></div><div class="dot" style="--c:#e05fa0;left:190px;top:170px"></div><div class="dot" style="--c:#ff9ccf;left:95px;top:190px"></div>
+  </div>
+  <div class="bubble" style="--c:#2bb3a3;left:1770px;top:380px;width:370px;height:370px">
+    <div class="dot" style="--c:#4ff0dc;left:90px;top:100px"></div><div class="dot" style="--c:#2bb3a3;left:230px;top:80px"></div><div class="dot" style="--c:#4ff0dc;left:260px;top:220px"></div><div class="dot" style="--c:#2bb3a3;left:120px;top:250px"></div><div class="dot" style="--c:#4ff0dc;left:180px;top:170px"></div>
+    <div class="card" style="--c:#4ff0dc;--r:18deg;left:95px;top:40px;width:120px;height:160px;opacity:.95"><div class="av" style="width:52px;height:52px;margin-left:-26px;top:18px"></div><div class="ln" style="top:84px;left:22px;right:22px;height:8px"></div><div class="ln" style="top:100px;left:22px;right:50px;height:8px"></div><div class="pills" style="top:122px;left:22px;right:22px"><i style="height:14px"></i><i style="height:14px"></i></div></div>
+  </div>
+  <div class="bubble" style="--c:#7c93ff;left:2050px;top:190px;width:240px;height:240px">
+    <div class="dot" style="--c:#7c93ff;left:60px;top:70px"></div><div class="dot" style="--c:#b9c4ff;left:150px;top:50px"></div><div class="dot" style="--c:#7c93ff;left:170px;top:150px"></div><div class="dot" style="--c:#b9c4ff;left:80px;top:170px"></div>
+  </div>
+
+  <div class="title">
+    <div class="word" data-t="Insorter">Insorter</div>
+    <div class="kana">インソーター<span>sort your instagram life into bubbles</span></div>
+  </div>
+
+  <div class="hud tl"></div><div class="hud br"></div>
+  <div class="scan"></div><div class="noise"></div><div class="vignette"></div>
+</div>
+</body>
+</html>

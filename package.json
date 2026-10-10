@@ -1,0 +1,22 @@
+{
+  "name": "insorter",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Sort your Instagram relationships into social bubbles, one card at a time. Local and read-only.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Luidiblu/insorter.git"
+  },
+  "type": "module",
+  "scripts": {
+    "collect": "bun run src/collect.ts",
+    "start": "bun run src/server.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "typescript": "^5.9.3"
+  }
+}
